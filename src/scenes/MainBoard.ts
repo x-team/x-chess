@@ -30,7 +30,7 @@ export default class MainBoardScene extends Phaser.Scene {
 
   startDrag(_pointer: Phaser.Input.Pointer, dragablePiece: ChessPiece) {
     const moves = this.chessGame.moves({ square: dragablePiece.getPositionInBoard(), verbose: true });
-    console.log(`The available moves SAN: ${this.chessGame.moves({ square: dragablePiece.getPositionInBoard() })}`)
+    // console.log(`The available moves SAN: ${this.chessGame.moves({ square: dragablePiece.getPositionInBoard() })}`)
     const possibleMoves: Set<Square> = new Set();
     moves.map( move => possibleMoves.add(move.to));
     const currentBoard = this.chessBoard.getBoard();
@@ -179,26 +179,26 @@ export default class MainBoardScene extends Phaser.Scene {
         square.piece.setPositionInBoard(square.positionName);
         
 
-        console.log(currentBoard.map(({
-          positionName,
-          positionNumber ,
-          rectangle,
-          piece,
-        }) => (`
-        {
-          positionName: ${positionName},
-          positionNumber: ${positionNumber}, 
-          rectangle: ${rectangle},
-          piece: { chessPiece: ${piece?.getChessPiece()}, positionInBoard: ${piece?.getPositionInBoard()}},
-        }
-        `)).join('\n'));
+        // console.log(currentBoard.map(({
+        //   positionName,
+        //   positionNumber ,
+        //   rectangle,
+        //   piece,
+        // }) => (`
+        // {
+        //   positionName: ${positionName},
+        //   positionNumber: ${positionNumber}, 
+        //   rectangle: ${rectangle},
+        //   piece: { chessPiece: ${piece?.getChessPiece()}, positionInBoard: ${piece?.getPositionInBoard()}},
+        // }
+        // `)).join('\n'));
         
         this.chessGame.move(mutableFinalMove);
         this.chessBoard.setFen(this.chessGame.fen());
-        console.log(`The move was: ${mutableFinalMove}`);
-        console.log(`The chessBoard FEN: ${this.chessBoard.getFen()}`);
-        console.log(`The chess lib FEN: ${this.chessGame.fen()}`);
-        console.log(`Are they the same?: ${this.chessGame.fen() === this.chessGame.fen()}`);
+        // console.log(`The move was: ${mutableFinalMove}`);
+        // console.log(`The chessBoard FEN: ${this.chessBoard.getFen()}`);
+        // console.log(`The chess lib FEN: ${this.chessGame.fen()}`);
+        // console.log(`Are they the same?: ${this.chessGame.fen() === this.chessGame.fen()}`);
       }
 
     })
