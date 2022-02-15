@@ -1,7 +1,7 @@
 import { Chess, ChessInstance, Square } from 'chess.js';
 import ChessBoard from "../game/ChessBoard";
 import ChessPiece from '../game/Piece';
-import { ONE, POSSIBLE_MOVE_BORDER_COLOR, SQUARE_TO_MOVE_COLOR, THREE, TWO } from '../game/utils/consts';
+import { ONE, POSSIBLE_MOVE_BORDER_COLOR, POSSIBLE_MOVE_BORDER_LINE_WIDTH, SQUARE_TO_MOVE_COLOR, THREE, TWO, ZERO } from '../game/utils/consts';
 
 export default class MainBoardScene extends Phaser.Scene {
   private chessBoard!: ChessBoard;
@@ -86,14 +86,14 @@ export default class MainBoardScene extends Phaser.Scene {
     currentBoard.forEach( square => {
       if (possibleMoves.has(square.positionName)) {
         square.rectangle.input.enabled = false;
-        square.rectangle.setStrokeStyle(0);
+        square.rectangle.setStrokeStyle(ZERO);
       }
     })
   }
 
   onPieceDragEnter(_pointer: Phaser.Input.Pointer, _dragablePiece: ChessPiece, rectangle: Phaser.GameObjects.Rectangle) {
     if (rectangle.input.enabled) {
-      rectangle.setStrokeStyle(3, POSSIBLE_MOVE_BORDER_COLOR);
+      rectangle.setStrokeStyle(POSSIBLE_MOVE_BORDER_LINE_WIDTH, POSSIBLE_MOVE_BORDER_COLOR);
       // rectangle.setFillStyle(SQUARE_TO_MOVE_COLOR);
     }
 
@@ -101,7 +101,7 @@ export default class MainBoardScene extends Phaser.Scene {
 
   onPieceDragLeave(_pointer: Phaser.Input.Pointer, _dragablePiece: ChessPiece, rectangle: Phaser.GameObjects.Rectangle) {
     if (rectangle.input.enabled) {
-      rectangle.setStrokeStyle(0);
+      rectangle.setStrokeStyle(ZERO);
     }
   }
 
@@ -130,7 +130,7 @@ export default class MainBoardScene extends Phaser.Scene {
       // Remove possible movement circles
       if (possibleSquaresToMove.has(square.positionName)) {
         square.rectangle.input.enabled = false;
-        square.rectangle.setStrokeStyle(0);
+        square.rectangle.setStrokeStyle(ZERO);
       }
 
       // Hay que revisar esto mejor
