@@ -117,6 +117,11 @@ export default class ChessBoard extends Phaser.GameObjects.Container {
     // `)).join('\n'));
   }
 
+  static getSquareNumberInBoard(square: string) {
+    const positionNumber = ((SQUARES_IN_WIDTH - parseInt(square[ONE])) * SQUARES_IN_WIDTH) + (chessColumns.indexOf(square[ZERO]) + ONE);
+    return positionNumber - ONE;
+  }
+
   getBoard() {
     return this.board;
   }

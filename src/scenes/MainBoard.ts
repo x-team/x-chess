@@ -1,11 +1,13 @@
 import { Chess, ChessInstance, Square } from 'chess.js';
 import ChessBoard from "../game/ChessBoard";
 import ChessPiece from '../game/Piece';
-import { ONE, THREE, TWO } from '../game/utils/consts';
+import { ONE, POSSIBLE_MOVE_BORDER_COLOR, POSSIBLE_MOVE_BORDER_LINE_WIDTH, SQUARE_TO_MOVE_COLOR, THREE, TWO, ZERO } from '../game/utils/consts';
 
 export default class MainBoardScene extends Phaser.Scene {
   private chessBoard!: ChessBoard;
   private chessGame: ChessInstance = new Chess();
+
+  private originSquareColor!: number;
 
   preload() {}
 
@@ -34,6 +36,12 @@ export default class MainBoardScene extends Phaser.Scene {
     const possibleMoves: Set<Square> = new Set();
     moves.map( move => possibleMoves.add(move.to));
     const currentBoard = this.chessBoard.getBoard();
+
+    // Change the color of the origin Square to highlight it in the board
+    const positionNumber = ChessBoard.getSquareNumberInBoard(dragablePiece.getPositionInBoard());
+    this.originSquareColor = currentBoard[positionNumber].rectangle.fillColor;
+    currentBoard[positionNumber].rectangle.setFillStyle(SQUARE_TO_MOVE_COLOR);
+
     currentBoard.forEach( square => {
       if (possibleMoves.has(square.positionName)) {
         const squareRect = square.rectangle;
@@ -46,15 +54,29 @@ export default class MainBoardScene extends Phaser.Scene {
   }
 
   doDrag(_pointer: Phaser.Input.Pointer, dragablePiece: ChessPiece, posX: number, posY: number) {
-    dragablePiece.x = posX;
-    dragablePiece.y = posY;
+    const chessBoardXOffset = (this.game.canvas.width - this.chessBoard.width) / TWO;
+    const chessBoardYOffset = (this.game.canvas.height - this.chessBoard.height) / TWO;
+    const chessBoardXhBound = this.chessBoard.x + this.chessBoard.width;
+    const chessBoardYBound = this.chessBoard.y + this.chessBoard.height;
+    if ((posX >= this.chessBoard.x - chessBoardXOffset) && (posX <= chessBoardXhBound - chessBoardXOffset)) {
+      dragablePiece.x = posX;
+    }
+    if ((posY >= this.chessBoard.y - chessBoardYOffset) && (posY <= chessBoardYBound - chessBoardYOffset)) {
+      dragablePiece.y = posY;
+    }
   }
 
   stopDrag(_pointer: Phaser.Input.Pointer, dragablePiece: ChessPiece, dropped: boolean) {
     if (!dropped)
     {
-        dragablePiece.x = dragablePiece.input.dragStartX;
-        dragablePiece.y = dragablePiece.input.dragStartY;
+      dragablePiece.x = dragablePiece.input.dragStartX;
+      dragablePiece.y = dragablePiece.input.dragStartY;
+
+      // Change back the color of the origin Square
+      const currentBoard = this.chessBoard.getBoard();
+      const positionNumber = ChessBoard.getSquareNumberInBoard(dragablePiece.getPositionInBoard());
+      currentBoard[positionNumber].rectangle.setFillStyle(this.originSquareColor);
+      this.originSquareColor = 0;
     }
     this.chessBoard.destroyPossibleMovements();
     const moves = this.chessGame.moves({ square: dragablePiece.getPositionInBoard(), verbose: true });
@@ -64,21 +86,22 @@ export default class MainBoardScene extends Phaser.Scene {
     currentBoard.forEach( square => {
       if (possibleMoves.has(square.positionName)) {
         square.rectangle.input.enabled = false;
-        square.rectangle.setStrokeStyle(0);
+        square.rectangle.setStrokeStyle(ZERO);
       }
     })
   }
 
   onPieceDragEnter(_pointer: Phaser.Input.Pointer, _dragablePiece: ChessPiece, rectangle: Phaser.GameObjects.Rectangle) {
     if (rectangle.input.enabled) {
-      rectangle.setStrokeStyle(3, 0xff0000);
+      rectangle.setStrokeStyle(POSSIBLE_MOVE_BORDER_LINE_WIDTH, POSSIBLE_MOVE_BORDER_COLOR);
+      // rectangle.setFillStyle(SQUARE_TO_MOVE_COLOR);
     }
 
   }
 
   onPieceDragLeave(_pointer: Phaser.Input.Pointer, _dragablePiece: ChessPiece, rectangle: Phaser.GameObjects.Rectangle) {
     if (rectangle.input.enabled) {
-      rectangle.setStrokeStyle(0);
+      rectangle.setStrokeStyle(ZERO);
     }
   }
 
@@ -89,6 +112,12 @@ export default class MainBoardScene extends Phaser.Scene {
     dragablePiece.y = rectangle.y + offsetPositionY;
 
     const currentBoard = this.chessBoard.getBoard();
+    
+    // Change back the color of the origin Square
+    const positionNumber = ChessBoard.getSquareNumberInBoard(dragablePiece.getPositionInBoard());
+    currentBoard[positionNumber].rectangle.setFillStyle(this.originSquareColor);
+    this.originSquareColor = 0;
+
     const verboseMoves = this.chessGame.moves({ square: dragablePiece.getPositionInBoard(), verbose: true });
     const sansMoves = this.chessGame.moves({ square: dragablePiece.getPositionInBoard() });
     const possibleSquaresToMove: Set<Square> = new Set();
@@ -101,7 +130,7 @@ export default class MainBoardScene extends Phaser.Scene {
       // Remove possible movement circles
       if (possibleSquaresToMove.has(square.positionName)) {
         square.rectangle.input.enabled = false;
-        square.rectangle.setStrokeStyle(0);
+        square.rectangle.setStrokeStyle(ZERO);
       }
 
       // Hay que revisar esto mejor
