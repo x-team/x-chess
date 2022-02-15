@@ -46,8 +46,16 @@ export default class MainBoardScene extends Phaser.Scene {
   }
 
   doDrag(_pointer: Phaser.Input.Pointer, dragablePiece: ChessPiece, posX: number, posY: number) {
-    dragablePiece.x = posX;
-    dragablePiece.y = posY;
+    const chessBoardXOffset = (this.game.canvas.width - this.chessBoard.width) / TWO;
+    const chessBoardYOffset = (this.game.canvas.height - this.chessBoard.height) / TWO;
+    const chessBoardXhBound = this.chessBoard.x + this.chessBoard.width;
+    const chessBoardYBound = this.chessBoard.y + this.chessBoard.height;
+    if ((posX >= this.chessBoard.x - chessBoardXOffset) && (posX <= chessBoardXhBound - chessBoardXOffset)) {
+      dragablePiece.x = posX;
+    }
+    if ((posY >= this.chessBoard.y - chessBoardYOffset) && (posY <= chessBoardYBound - chessBoardYOffset)) {
+      dragablePiece.y = posY;
+    }
   }
 
   stopDrag(_pointer: Phaser.Input.Pointer, dragablePiece: ChessPiece, dropped: boolean) {
