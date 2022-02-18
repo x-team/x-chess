@@ -1,17 +1,5 @@
 import { Square } from "chess.js";
-
-export enum Piece {
-  None = 0,
-  King = 1,
-  Pawn = 2,
-  Knight = 3,
-  Bishop = 4,
-  Rook = 5,
-  Queen = 6,
-
-  White = 8,
-  Black = 16,
-}
+import { Piece } from "./utils/consts";
 
 export default class ChessPiece extends Phaser.GameObjects.Image {
 
@@ -93,6 +81,11 @@ export default class ChessPiece extends Phaser.GameObjects.Image {
 
   static pieceType (piece: Piece) {
     return piece & this.typeMask;
+  }
+
+  getColour() {
+    const isPieceColorBlack = ChessPiece.isColour(this.chessPiece, Piece.Black);
+    return (isPieceColorBlack) ? Piece.Black : Piece.White;
   }
 
   getChessPiece() {

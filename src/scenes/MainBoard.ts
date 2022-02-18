@@ -2,6 +2,7 @@ import { Chess, ChessInstance, Square } from 'chess.js';
 import ChessBoard from "../game/ChessBoard";
 import ChessPiece from '../game/Piece';
 import { ONE, POSSIBLE_MOVE_BORDER_COLOR, POSSIBLE_MOVE_BORDER_LINE_WIDTH, SQUARE_TO_MOVE_COLOR, THREE, TWO, ZERO } from '../game/utils/consts';
+import SceneKeys from '../game/utils/SceneKeys';
 
 export default class MainBoardScene extends Phaser.Scene {
   private chessBoard!: ChessBoard;
@@ -12,6 +13,12 @@ export default class MainBoardScene extends Phaser.Scene {
   preload() {}
 
   create() {
+    // Promotion for white
+    // this.chessBoard = new ChessBoard(this, 0, 0,'rnbq2nr/ppppkPpp/3b4/4p3/8/8/PPPP1PPP/RNBQKBNR w KQ - 1 5');
+    // this.chessGame = new Chess('rnbq2nr/ppppkPpp/3b4/4p3/8/8/PPPP1PPP/RNBQKBNR w KQ - 1 5');
+    // Promotion for black
+    // this.chessBoard = new ChessBoard(this, 0, 0,'rnbq2nr/ppppkPpp/3b4/8/8/3B3N/PPPPKpPP/RNBQ3R b - - 1 8');
+    // this.chessGame = new Chess('rnbq2nr/ppppkPpp/3b4/8/8/3B3N/PPPPKpPP/RNBQ3R b - - 1 8');
     this.chessBoard = new ChessBoard(this, 0, 0);
     this.chessGame = new Chess(this.chessBoard.getFen());
 
@@ -133,11 +140,6 @@ export default class MainBoardScene extends Phaser.Scene {
         square.rectangle.setStrokeStyle(ZERO);
       }
 
-      // Hay que revisar esto mejor
-      // if ((dragablePiece.getPositionInBoard() === square.positionName)) {
-      //   square.piece = undefined;
-      // }
-
 
       if ((rectangle.x === square.rectangle.x) && (rectangle.y === square.rectangle.y)) {
         let mutableFinalMove: string = '';
@@ -145,6 +147,19 @@ export default class MainBoardScene extends Phaser.Scene {
           const mutableMoves: string[] = sansMoves.filter((move) => move.includes(square.positionName));
           if (mutableMoves.length === ONE) {
             mutableFinalMove = mutableMoves.pop()!;
+          } else {
+            // Is it a promotion?
+            this.game.scene.pause(SceneKeys.MainBoard);
+            this.game.scene.start(
+              SceneKeys.Promotion,
+              {
+                rectangle: square.rectangle,
+                pieceColor: dragablePiece.getColour(),
+                offset: {
+                  x: (this.game.canvas.width - this.chessBoard.width) /TWO,
+                  y: (this.game.canvas.height - this.chessBoard.height) /TWO,
+                }
+              });
           }
 
           if (square.piece) {
@@ -226,7 +241,7 @@ export default class MainBoardScene extends Phaser.Scene {
         this.chessBoard.setFen(this.chessGame.fen());
         // console.log(`The move was: ${mutableFinalMove}`);
         // console.log(`The chessBoard FEN: ${this.chessBoard.getFen()}`);
-        // console.log(`The chess lib FEN: ${this.chessGame.fen()}`);
+        console.log(`The chess lib FEN: ${this.chessGame.fen()}`);
         // console.log(`Are they the same?: ${this.chessGame.fen() === this.chessGame.fen()}`);
       }
 
