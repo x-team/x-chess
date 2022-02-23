@@ -1,13 +1,19 @@
-import { PromotionSeed } from "../game/interfaces";
+import { Square } from "chess.js";
+import { PromotionOptionSelected, PromotionParams } from "../game/interfaces";
 import RoundRectanglePlugin from 'phaser3-rex-plugins/plugins/roundrectangle';
-import { ONE, Piece, TEXT_COLOR, TWO, ZERO } from "../game/utils/consts";
+import { Piece, TEXT_COLOR, TWO, ZERO } from "../game/utils/consts";
+import SceneKeys from "../game/utils/SceneKeys";
 
 export default class PromotionScene extends Phaser.Scene {
   private pieceColor: Piece.Black | Piece.White = Piece.Black;
+  private origin!: Square;
+  private target!: Square;
 
-  init(promotionSeed: PromotionSeed) {
-    
-    const { rectangle: { x, y, width, height }, pieceColor, offset } = promotionSeed;
+  init(promotionSeed: PromotionParams) {
+    const { rectangle: { x, y, width, height }, pieceColor, offset, origin, target } = promotionSeed;
+    this.pieceColor = pieceColor;
+    this.origin = origin;
+    this.target = target;
     const squareColor = 0xF7F7FF;
     const piecesToShow = 4;
     const piecesOptionsHeight =  (width * piecesToShow);
@@ -21,6 +27,7 @@ export default class PromotionScene extends Phaser.Scene {
     // PIECE OPTIONS
     const xPosition = (pieceColor === Piece.White) ? x + offsetX : x + offsetX;
     const yPosition = (pieceColor === Piece.White) ? y + offsetY : y - (moveUpOptions * height) + offsetY;
+
     const piecesOptionsButton = new RoundRectanglePlugin(
       this,
       xPosition,
@@ -72,7 +79,13 @@ export default class PromotionScene extends Phaser.Scene {
       ,
       closeButtonColor,
     );
+    // closeButton.setDataEnabled();
+    closeButton.setData({
+      fullName: 'close_button',
+      pieceName: 'close',
+    })
     closeButton.setOrigin(ZERO, ZERO);
+    closeButton.setInteractive();;
     this.add.existing(closeButton);
 
     // X CLOSE "BUTTON"
@@ -85,7 +98,6 @@ export default class PromotionScene extends Phaser.Scene {
     )
     .setOrigin(originAt, originAt);
 
-    this.pieceColor = pieceColor;
     const pieceColorName = (this.pieceColor === Piece.Black) ? 'black_' : 'white_' ;
     const promotionPiecesNames = [
       'queen',
@@ -96,14 +108,38 @@ export default class PromotionScene extends Phaser.Scene {
     promotionPiecesNames.forEach((pieceName, i) => {
       const squareCenter = width / 2;
       const xPos = piecesOptionsButton.x;
-      const yPos = piecesOptionsButton.y * (i + ONE);
+      const yPos = piecesOptionsButton.y + (height * i);
       const promotionPiece = this.add.image(xPos + squareCenter, yPos + squareCenter, 'chess-pieces-atlas', `${pieceColorName}${pieceName}.png`);
+      // promotionPiece.setDataEnabled();
+      promotionPiece.setData({
+        fullName: `${pieceColorName}${pieceName}`,
+        pieceName,
+      })
       promotionPiece.setScale(0.2)
       promotionPiece.setInteractive();
     });
   }
 
   create() {
-    
+    this.input.on('pointerdown', this.optionSelected, this);
+  }
+
+  optionSelected(_pointer: Phaser.Input.Pointer, options: Array<Phaser.GameObjects.Image | RoundRectanglePlugin>) {
+    const [optionClicked] = options;
+    const promotionOptionPicked: PromotionOptionSelected = {
+      fullName: optionClicked.data.get('fullName'),
+      pieceName: optionClicked.data.get('pieceName'),
+      pieceColor: this.pieceColor,
+      origin: this.origin,
+      target: this.target,
+    }
+    this.game.scene.pause(SceneKeys.Promotion);
+    this.game.scene.resume(
+      SceneKeys.MainBoard,
+      promotionOptionPicked
+    );
+    this.registry.destroy();
+    this.events.off('pointerdown');
+    this.scene.stop(SceneKeys.Promotion);
   }
 }

@@ -1,5 +1,6 @@
 import { Chess, ChessInstance, Square } from 'chess.js';
 import ChessBoard from "../game/ChessBoard";
+import { PromotionOptionSelected, PromotionParams } from '../game/interfaces';
 import ChessPiece from '../game/Piece';
 import { ONE, POSSIBLE_MOVE_BORDER_COLOR, POSSIBLE_MOVE_BORDER_LINE_WIDTH, SQUARE_TO_MOVE_COLOR, THREE, TWO, ZERO } from '../game/utils/consts';
 import SceneKeys from '../game/utils/SceneKeys';
@@ -13,14 +14,11 @@ export default class MainBoardScene extends Phaser.Scene {
   preload() {}
 
   create() {
-    // Promotion for white
-    // this.chessBoard = new ChessBoard(this, 0, 0,'rnbq2nr/ppppkPpp/3b4/4p3/8/8/PPPP1PPP/RNBQKBNR w KQ - 1 5');
-    // this.chessGame = new Chess('rnbq2nr/ppppkPpp/3b4/4p3/8/8/PPPP1PPP/RNBQKBNR w KQ - 1 5');
-    // Promotion for black
-    // this.chessBoard = new ChessBoard(this, 0, 0,'rnbq2nr/ppppkPpp/3b4/8/8/3B3N/PPPPKpPP/RNBQ3R b - - 1 8');
-    // this.chessGame = new Chess('rnbq2nr/ppppkPpp/3b4/8/8/3B3N/PPPPKpPP/RNBQ3R b - - 1 8');
-    this.chessBoard = new ChessBoard(this, 0, 0);
-    this.chessGame = new Chess(this.chessBoard.getFen());
+    // Promotion
+    this.chessBoard = new ChessBoard(this, 0, 0,'rnbq2nr/ppppkPpp/3b4/8/8/3B3N/PPPPKpPP/RNBQ3R b - - 1 8');
+    this.chessGame = new Chess('rnbq2nr/ppppkPpp/3b4/8/8/3B3N/PPPPKpPP/RNBQ3R b - - 1 8');
+    // this.chessBoard = new ChessBoard(this, 0, 0);
+    // this.chessGame = new Chess(this.chessBoard.getFen());
 
     //  The pointer has to move 16 pixels before it's considered as a drag
     this.input.dragDistanceThreshold = 16;
@@ -33,6 +31,9 @@ export default class MainBoardScene extends Phaser.Scene {
     this.input.on('dragenter', this.onPieceDragEnter, this);
     this.input.on('dragleave', this.onPieceDragLeave, this);
     this.input.on('drop', this.onPieceDrop, this);
+
+    // Promotion behavior
+    this.events.on('resume', this.finishPromotionMove, this);
   }
 
   update() {}
@@ -149,17 +150,24 @@ export default class MainBoardScene extends Phaser.Scene {
             mutableFinalMove = mutableMoves.pop()!;
           } else {
             // Is it a promotion?
+            const promotionParams: PromotionParams = {
+              rectangle: square.rectangle,
+              pieceColor: dragablePiece.getColour(),
+              origin: dragablePiece.getPositionInBoard(),
+              target: square.positionName,
+              offset: {
+                x: (this.game.canvas.width - this.chessBoard.width) /TWO,
+                y: (this.game.canvas.height - this.chessBoard.height) /TWO,
+              }
+            }
             this.game.scene.pause(SceneKeys.MainBoard);
             this.game.scene.start(
               SceneKeys.Promotion,
-              {
-                rectangle: square.rectangle,
-                pieceColor: dragablePiece.getColour(),
-                offset: {
-                  x: (this.game.canvas.width - this.chessBoard.width) /TWO,
-                  y: (this.game.canvas.height - this.chessBoard.height) /TWO,
-                }
-              });
+              promotionParams
+            );
+            dragablePiece.x = dragablePiece.input.dragStartX;
+            dragablePiece.y = dragablePiece.input.dragStartY;
+            return;
           }
 
           if (square.piece) {
@@ -246,5 +254,51 @@ export default class MainBoardScene extends Phaser.Scene {
       }
 
     })
+  }
+
+  finishPromotionMove(_scene: Phaser.Scene, promotionData: PromotionOptionSelected) {
+    const currentBoard = this.chessBoard.getBoard();
+    const { origin, target, pieceColor, pieceName } = promotionData;
+    const sansMoves = this.chessGame.moves({ square: origin });
+    if (pieceName === 'close') {
+      return;
+    }
+    const promotionFor = pieceName[ZERO]?.toUpperCase();
+    const pieceType = ChessPiece.pieceTypeFromSymbol(promotionFor);
+    const originIndex = ChessBoard.getSquareNumberInBoard(origin);
+    const targetIndex = ChessBoard.getSquareNumberInBoard(target);
+    const originSquare = currentBoard[originIndex];
+    const targetSquare = currentBoard[targetIndex];
+    
+    let mutableFinalMove = `${target}=${promotionFor}+`;
+    // find moves for cases like f1=Q+ f2xf1=R. 
+    // We can search for all moves with the "to" param going "target"
+    // Then filter where it finds the "promotionFor" and check if there's only one possibility,
+    // otherwise choose the longest one e.g f1xf2=R+ is longer than f1xf2=R+ 
+    
+    const newChessPiece = new ChessPiece(pieceColor | pieceType, target, targetSquare.rectangle, this);
+    
+    // Remove piece from current position
+    originSquare.piece?.destroy();
+    this.chessBoard.removePieceFromCurrentPosition(originSquare.piece!);
+    
+    console.log(`
+    {
+      positionName: ${this.chessBoard.getBoard()[originIndex].positionName},
+      positionNumber: ${this.chessBoard.getBoard()[originIndex].positionNumber}, 
+      rectangle: ${this.chessBoard.getBoard()[originIndex].rectangle},
+      piece: { chessPiece: ${this.chessBoard.getBoard()[originIndex].piece?.getChessPiece()}, positionInBoard: ${this.chessBoard.getBoard()[originIndex].piece?.getPositionInBoard()}},
+    }
+    `);
+    // Set the new position of the piece
+    targetSquare.piece = newChessPiece;
+    this.chessBoard.add(targetSquare.piece);
+    
+
+
+    console.log(`Final Move ${mutableFinalMove}`);
+    this.chessGame.move(mutableFinalMove);
+    this.chessBoard.setFen(this.chessGame.fen());
+    console.log(`The chess lib FEN: ${this.chessGame.fen()}`);
   }
 }

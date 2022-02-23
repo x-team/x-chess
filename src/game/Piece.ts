@@ -11,7 +11,12 @@ export default class ChessPiece extends Phaser.GameObjects.Image {
   private chessPiece: number;
   private positionInBoard: Square;
 
-  constructor(piece: number, positionInBoard: Square, squareParent: Phaser.GameObjects.Rectangle, scene: Phaser.Scene) {
+  constructor(
+    piece: number,
+    positionInBoard: Square,
+    squareParent: Phaser.GameObjects.Rectangle,
+    scene: Phaser.Scene,
+  ) {
     const isPieceColorBlack = ChessPiece.isColour(piece, Piece.Black);
     let mutableImageName = '';
     if (isPieceColorBlack) {
