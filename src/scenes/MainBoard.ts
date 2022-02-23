@@ -14,11 +14,36 @@ export default class MainBoardScene extends Phaser.Scene {
   preload() {}
 
   create() {
-    // Promotion
+    // Promotion FEN
     // this.chessBoard = new ChessBoard(this, 0, 0,'rnbq2nr/ppppkPpp/3b4/8/8/3B3N/PPPPKpPP/RNBQ3R b - - 1 8');
     // this.chessGame = new Chess('rnbq2nr/ppppkPpp/3b4/8/8/3B3N/PPPPKpPP/RNBQ3R b - - 1 8');
-    this.chessBoard = new ChessBoard(this, 0, 0);
-    this.chessGame = new Chess(this.chessBoard.getFen());
+    // CheckMate FEN
+    // this.chessBoard = new ChessBoard(this, 0, 0,'rnb1kbnr/pppp1ppp/8/4p3/5PPq/8/PPPPP2P/RNBQKBNR w KQkq - 1 3');
+    // this.chessGame = new Chess('rnb1kbnr/pppp1ppp/8/4p3/5PPq/8/PPPPP2P/RNBQKBNR w KQkq - 1 3');
+
+    // PRE- CheckMate FEN
+    // this.chessBoard = new ChessBoard(this, 0, 0,'rnb1kbnr/pppp1ppp/8/4p2q/5PP1/8/PPPPP2P/RNBQKBNR b KQkq - 0 2');
+    // this.chessGame = new Chess('rnb1kbnr/pppp1ppp/8/4p2q/5PP1/8/PPPPP2P/RNBQKBNR b KQkq - 0 2');
+
+    // Stalemate FEN
+    this.chessBoard = new ChessBoard(this, 0, 0,'4k3/4P3/4K3/8/8/8/8/8 b - - 0 78');
+    this.chessGame = new Chess('4k3/4P3/4K3/8/8/8/8/8 b - - 0 78');
+
+    // DRAW FEN
+    // this.chessBoard = new ChessBoard(this, 0, 0,);
+    // this.chessGame = new Chess();
+
+    //threefold repetition FEN
+    // this.chessBoard = new ChessBoard(this, 0, 0,);
+    // this.chessGame = new Chess();
+
+    // Insufficient Material FEN
+    // this.chessBoard = new ChessBoard(this, 0, 0,);
+    // this.chessGame = new Chess();
+
+    // Starter FEN
+    // this.chessBoard = new ChessBoard(this, 0, 0);
+    // this.chessGame = new Chess(this.chessBoard.getFen());
 
     //  The pointer has to move 16 pixels before it's considered as a drag
     this.input.dragDistanceThreshold = 16;
@@ -34,9 +59,45 @@ export default class MainBoardScene extends Phaser.Scene {
 
     // Promotion behavior
     this.events.on('resume', this.finishPromotionMove, this);
+
+    // Check if the game is already over
+    this.checkGameOver();
   }
 
   update() {}
+
+  checkGameOver() {
+    // Returns true if the game has ended via checkmate, stalemate, draw, threefold repetition, or insufficient material. Otherwise, returns false.
+    if (this.chessGame.game_over()) {
+      console.log('GAME OVER');
+      console.log(this.chessGame.history());
+      const isCheckmate = this.chessGame.in_checkmate();
+      const isStalemate = this.chessGame.in_stalemate();
+      const isDraw = this.chessGame.in_draw();
+      const isThreefoldRepetition = this.chessGame.in_threefold_repetition();
+      const isInsufficientMaterial = this.chessGame.insufficient_material();
+      if(isCheckmate) {
+        console.log('Reason: isCheckmate');
+        return;
+      }
+      if(isStalemate) {
+        console.log('Reason: Stalemate');
+        return;
+      }
+      if(isDraw) {
+        console.log('Reason: Draw');
+        return;
+      }
+      if(isThreefoldRepetition) {
+        console.log('Reason: ThreefoldRepetition');
+        return;
+      }
+      if(isInsufficientMaterial) {
+        console.log('Reason: InsufficientMaterial');
+        return;
+      }
+    }
+  }
 
   startDrag(_pointer: Phaser.Input.Pointer, dragablePiece: ChessPiece) {
     this.children.bringToTop(dragablePiece);
@@ -231,7 +292,10 @@ export default class MainBoardScene extends Phaser.Scene {
         
         this.chessGame.move(mutableFinalMove);
         this.chessBoard.setFen(this.chessGame.fen());
-        // console.log(`The chess lib FEN: ${this.chessGame.fen()}`);
+        console.log(`The chess lib FEN: ${this.chessGame.fen()}`);
+
+        // Check if the game is over
+        this.checkGameOver();
       }
 
     })
@@ -276,5 +340,8 @@ export default class MainBoardScene extends Phaser.Scene {
     
     this.chessGame.move(mutableFinalMove);
     this.chessBoard.setFen(this.chessGame.fen());
+
+    // Check if the game is over
+    this.checkGameOver();
   }
 }
