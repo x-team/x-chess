@@ -1,15 +1,22 @@
 import { Chess, ChessInstance, Square } from 'chess.js';
 import ChessBoard from "../game/ChessBoard";
+import { PromotionOptionSelected, PromotionParams } from '../game/interfaces';
 import ChessPiece from '../game/Piece';
-import { ONE, THREE, TWO } from '../game/utils/consts';
+import { ONE, POSSIBLE_MOVE_BORDER_COLOR, POSSIBLE_MOVE_BORDER_LINE_WIDTH, SQUARE_TO_MOVE_COLOR, THREE, TWO, ZERO } from '../game/utils/consts';
+import SceneKeys from '../game/utils/SceneKeys';
 
 export default class MainBoardScene extends Phaser.Scene {
   private chessBoard!: ChessBoard;
   private chessGame: ChessInstance = new Chess();
 
+  private originSquareColor!: number;
+
   preload() {}
 
   create() {
+    // Promotion
+    // this.chessBoard = new ChessBoard(this, 0, 0,'rnbq2nr/ppppkPpp/3b4/8/8/3B3N/PPPPKpPP/RNBQ3R b - - 1 8');
+    // this.chessGame = new Chess('rnbq2nr/ppppkPpp/3b4/8/8/3B3N/PPPPKpPP/RNBQ3R b - - 1 8');
     this.chessBoard = new ChessBoard(this, 0, 0);
     this.chessGame = new Chess(this.chessBoard.getFen());
 
@@ -24,16 +31,25 @@ export default class MainBoardScene extends Phaser.Scene {
     this.input.on('dragenter', this.onPieceDragEnter, this);
     this.input.on('dragleave', this.onPieceDragLeave, this);
     this.input.on('drop', this.onPieceDrop, this);
+
+    // Promotion behavior
+    this.events.on('resume', this.finishPromotionMove, this);
   }
 
   update() {}
 
   startDrag(_pointer: Phaser.Input.Pointer, dragablePiece: ChessPiece) {
+    this.children.bringToTop(dragablePiece);
     const moves = this.chessGame.moves({ square: dragablePiece.getPositionInBoard(), verbose: true });
-    // console.log(`The available moves SAN: ${this.chessGame.moves({ square: dragablePiece.getPositionInBoard() })}`)
     const possibleMoves: Set<Square> = new Set();
     moves.map( move => possibleMoves.add(move.to));
     const currentBoard = this.chessBoard.getBoard();
+
+    // Change the color of the origin Square to highlight it in the board
+    const positionNumber = ChessBoard.getSquareNumberInBoard(dragablePiece.getPositionInBoard());
+    this.originSquareColor = currentBoard[positionNumber].rectangle.fillColor;
+    currentBoard[positionNumber].rectangle.setFillStyle(SQUARE_TO_MOVE_COLOR);
+
     currentBoard.forEach( square => {
       if (possibleMoves.has(square.positionName)) {
         const squareRect = square.rectangle;
@@ -42,19 +58,32 @@ export default class MainBoardScene extends Phaser.Scene {
         this.chessBoard.addPossibleMovement(squareRect);
       }
     });
-    this.children.bringToTop(dragablePiece);
   }
 
   doDrag(_pointer: Phaser.Input.Pointer, dragablePiece: ChessPiece, posX: number, posY: number) {
-    dragablePiece.x = posX;
-    dragablePiece.y = posY;
+    const chessBoardXOffset = (this.game.canvas.width - this.chessBoard.width) / TWO;
+    const chessBoardYOffset = (this.game.canvas.height - this.chessBoard.height) / TWO;
+    const chessBoardXhBound = this.chessBoard.x + this.chessBoard.width;
+    const chessBoardYBound = this.chessBoard.y + this.chessBoard.height;
+    if ((posX >= this.chessBoard.x - chessBoardXOffset) && (posX <= chessBoardXhBound - chessBoardXOffset)) {
+      dragablePiece.x = posX;
+    }
+    if ((posY >= this.chessBoard.y - chessBoardYOffset) && (posY <= chessBoardYBound - chessBoardYOffset)) {
+      dragablePiece.y = posY;
+    }
   }
 
   stopDrag(_pointer: Phaser.Input.Pointer, dragablePiece: ChessPiece, dropped: boolean) {
     if (!dropped)
     {
-        dragablePiece.x = dragablePiece.input.dragStartX;
-        dragablePiece.y = dragablePiece.input.dragStartY;
+      dragablePiece.x = dragablePiece.input.dragStartX;
+      dragablePiece.y = dragablePiece.input.dragStartY;
+
+      // Change back the color of the origin Square
+      const currentBoard = this.chessBoard.getBoard();
+      const positionNumber = ChessBoard.getSquareNumberInBoard(dragablePiece.getPositionInBoard());
+      currentBoard[positionNumber].rectangle.setFillStyle(this.originSquareColor);
+      this.originSquareColor = 0;
     }
     this.chessBoard.destroyPossibleMovements();
     const moves = this.chessGame.moves({ square: dragablePiece.getPositionInBoard(), verbose: true });
@@ -64,21 +93,22 @@ export default class MainBoardScene extends Phaser.Scene {
     currentBoard.forEach( square => {
       if (possibleMoves.has(square.positionName)) {
         square.rectangle.input.enabled = false;
-        square.rectangle.setStrokeStyle(0);
+        square.rectangle.setStrokeStyle(ZERO);
       }
     })
   }
 
   onPieceDragEnter(_pointer: Phaser.Input.Pointer, _dragablePiece: ChessPiece, rectangle: Phaser.GameObjects.Rectangle) {
     if (rectangle.input.enabled) {
-      rectangle.setStrokeStyle(3, 0xff0000);
+      rectangle.setStrokeStyle(POSSIBLE_MOVE_BORDER_LINE_WIDTH, POSSIBLE_MOVE_BORDER_COLOR);
+      // rectangle.setFillStyle(SQUARE_TO_MOVE_COLOR);
     }
 
   }
 
   onPieceDragLeave(_pointer: Phaser.Input.Pointer, _dragablePiece: ChessPiece, rectangle: Phaser.GameObjects.Rectangle) {
     if (rectangle.input.enabled) {
-      rectangle.setStrokeStyle(0);
+      rectangle.setStrokeStyle(ZERO);
     }
   }
 
@@ -89,6 +119,12 @@ export default class MainBoardScene extends Phaser.Scene {
     dragablePiece.y = rectangle.y + offsetPositionY;
 
     const currentBoard = this.chessBoard.getBoard();
+    
+    // Change back the color of the origin Square
+    const positionNumber = ChessBoard.getSquareNumberInBoard(dragablePiece.getPositionInBoard());
+    currentBoard[positionNumber].rectangle.setFillStyle(this.originSquareColor);
+    this.originSquareColor = 0;
+
     const verboseMoves = this.chessGame.moves({ square: dragablePiece.getPositionInBoard(), verbose: true });
     const sansMoves = this.chessGame.moves({ square: dragablePiece.getPositionInBoard() });
     const possibleSquaresToMove: Set<Square> = new Set();
@@ -101,13 +137,8 @@ export default class MainBoardScene extends Phaser.Scene {
       // Remove possible movement circles
       if (possibleSquaresToMove.has(square.positionName)) {
         square.rectangle.input.enabled = false;
-        square.rectangle.setStrokeStyle(0);
+        square.rectangle.setStrokeStyle(ZERO);
       }
-
-      // Hay que revisar esto mejor
-      // if ((dragablePiece.getPositionInBoard() === square.positionName)) {
-      //   square.piece = undefined;
-      // }
 
 
       if ((rectangle.x === square.rectangle.x) && (rectangle.y === square.rectangle.y)) {
@@ -116,6 +147,26 @@ export default class MainBoardScene extends Phaser.Scene {
           const mutableMoves: string[] = sansMoves.filter((move) => move.includes(square.positionName));
           if (mutableMoves.length === ONE) {
             mutableFinalMove = mutableMoves.pop()!;
+          } else {
+            // Is it a promotion?
+            const promotionParams: PromotionParams = {
+              rectangle: square.rectangle,
+              pieceColor: dragablePiece.getColour(),
+              origin: dragablePiece.getPositionInBoard(),
+              target: square.positionName,
+              offset: {
+                x: (this.game.canvas.width - this.chessBoard.width) /TWO,
+                y: (this.game.canvas.height - this.chessBoard.height) /TWO,
+              }
+            }
+            this.game.scene.pause(SceneKeys.MainBoard);
+            this.game.scene.start(
+              SceneKeys.Promotion,
+              promotionParams
+            );
+            dragablePiece.x = dragablePiece.input.dragStartX;
+            dragablePiece.y = dragablePiece.input.dragStartY;
+            return;
           }
 
           if (square.piece) {
@@ -178,29 +229,52 @@ export default class MainBoardScene extends Phaser.Scene {
         square.piece = dragablePiece;
         square.piece.setPositionInBoard(square.positionName);
         
-
-        // console.log(currentBoard.map(({
-        //   positionName,
-        //   positionNumber ,
-        //   rectangle,
-        //   piece,
-        // }) => (`
-        // {
-        //   positionName: ${positionName},
-        //   positionNumber: ${positionNumber}, 
-        //   rectangle: ${rectangle},
-        //   piece: { chessPiece: ${piece?.getChessPiece()}, positionInBoard: ${piece?.getPositionInBoard()}},
-        // }
-        // `)).join('\n'));
-        
         this.chessGame.move(mutableFinalMove);
         this.chessBoard.setFen(this.chessGame.fen());
-        // console.log(`The move was: ${mutableFinalMove}`);
-        // console.log(`The chessBoard FEN: ${this.chessBoard.getFen()}`);
         // console.log(`The chess lib FEN: ${this.chessGame.fen()}`);
-        // console.log(`Are they the same?: ${this.chessGame.fen() === this.chessGame.fen()}`);
       }
 
     })
+  }
+
+  finishPromotionMove(_scene: Phaser.Scene, promotionData: PromotionOptionSelected) {
+    const currentBoard = this.chessBoard.getBoard();
+    const { origin, target, pieceColor, pieceName } = promotionData;
+    const sansMoves = this.chessGame.moves({ square: origin });
+    if (pieceName === 'close') {
+      return;
+    }
+    const promotionFor = pieceName[ZERO]?.toUpperCase();
+    const pieceType = ChessPiece.pieceTypeFromSymbol(promotionFor);
+    const originIndex = ChessBoard.getSquareNumberInBoard(origin);
+    const targetIndex = ChessBoard.getSquareNumberInBoard(target);
+    const originSquare = currentBoard[originIndex];
+    const targetSquare = currentBoard[targetIndex];
+    
+    let mutableFinalMove = `${target}=${promotionFor}`;
+    const possibleMoves = sansMoves.filter((move) => move.indexOf(mutableFinalMove) >= ZERO);
+    if(possibleMoves.length > ONE) {
+      possibleMoves.sort((pMoveA, pMoveB) => pMoveB.length - pMoveA.length);
+      mutableFinalMove = possibleMoves.shift()??mutableFinalMove;
+    } else {
+      mutableFinalMove = possibleMoves.shift()??mutableFinalMove;
+    }
+    
+    const newChessPiece = new ChessPiece(pieceColor | pieceType, target, targetSquare.rectangle, this);
+    
+    if (targetSquare.piece) {
+      targetSquare.piece.destroy();
+    }
+
+    // Remove piece from current position
+    originSquare.piece?.destroy();
+    this.chessBoard.removePieceFromCurrentPosition(originSquare.piece!);
+    
+    // Set the new position of the piece
+    targetSquare.piece = newChessPiece;
+    this.chessBoard.add(targetSquare.piece);
+    
+    this.chessGame.move(mutableFinalMove);
+    this.chessBoard.setFen(this.chessGame.fen());
   }
 }

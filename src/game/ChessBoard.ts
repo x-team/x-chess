@@ -1,7 +1,7 @@
 import { Square } from 'chess.js';
 import { isNaN, toNumber, parseInt } from 'lodash';
-import ChessPiece, { Piece } from "./Piece";
-import { chessColumns, ONE, SQUARES_IN_WIDTH, TWO, ZERO } from "./utils/consts";
+import ChessPiece from "./Piece";
+import { BLACK_SQUARE_COLOR, chessColumns, ONE, Piece, SQUARES_IN_WIDTH, TWO, WHITE_SQUARE_COLOR, ZERO } from "./utils/consts";
 
 interface chessBoardSquare {
   positionNumber: number;
@@ -13,9 +13,9 @@ interface chessBoardSquare {
 export default class ChessBoard extends Phaser.GameObjects.Container {
   private fen: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
   private board: chessBoardSquare[] = [];
-  private blackColor = 0x6666ff;
+  private blackColor = BLACK_SQUARE_COLOR;
   private blackColorHex = '#6666FF';
-  private whiteColor = 0xE8E8FF;
+  private whiteColor = WHITE_SQUARE_COLOR;
   private whiteColorHex = '#E8E8FF';
   private fontSize = '15px';
   private possibleMovementCircleColor = 0x0A3E5C;
@@ -101,8 +101,8 @@ export default class ChessBoard extends Phaser.GameObjects.Container {
     // LOAD STARTING PIECES
     this.loadPositionFromFen(startingFen || this.fen);
 
-    const newXposition = (scene.game.canvas.width / TWO) - (this.width / TWO);
-    const newYposition = (scene.game.canvas.height / TWO) - (this.height / TWO);
+    const newXposition = (scene.game.canvas.width - this.width ) / TWO;
+    const newYposition = (scene.game.canvas.height - this.height) / TWO;
     this.setPosition(newXposition, newYposition);
     // console.log(this.board.map(({
     //   positionName,
@@ -115,6 +115,11 @@ export default class ChessBoard extends Phaser.GameObjects.Container {
     //   rectangle: ${rectangle},
     // }
     // `)).join('\n'));
+  }
+
+  static getSquareNumberInBoard(square: string) {
+    const positionNumber = ((SQUARES_IN_WIDTH - parseInt(square[ONE])) * SQUARES_IN_WIDTH) + (chessColumns.indexOf(square[ZERO]) + ONE);
+    return positionNumber - ONE;
   }
 
   getBoard() {
