@@ -15,10 +15,10 @@ export default class MainBoardScene extends Phaser.Scene {
 
   create() {
     // Promotion
-    this.chessBoard = new ChessBoard(this, 0, 0,'rnbq2nr/ppppkPpp/3b4/8/8/3B3N/PPPPKpPP/RNBQ3R b - - 1 8');
-    this.chessGame = new Chess('rnbq2nr/ppppkPpp/3b4/8/8/3B3N/PPPPKpPP/RNBQ3R b - - 1 8');
-    // this.chessBoard = new ChessBoard(this, 0, 0);
-    // this.chessGame = new Chess(this.chessBoard.getFen());
+    // this.chessBoard = new ChessBoard(this, 0, 0,'rnbq2nr/ppppkPpp/3b4/8/8/3B3N/PPPPKpPP/RNBQ3R b - - 1 8');
+    // this.chessGame = new Chess('rnbq2nr/ppppkPpp/3b4/8/8/3B3N/PPPPKpPP/RNBQ3R b - - 1 8');
+    this.chessBoard = new ChessBoard(this, 0, 0);
+    this.chessGame = new Chess(this.chessBoard.getFen());
 
     //  The pointer has to move 16 pixels before it's considered as a drag
     this.input.dragDistanceThreshold = 16;
