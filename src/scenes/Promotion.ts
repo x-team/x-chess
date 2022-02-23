@@ -113,7 +113,7 @@ export default class PromotionScene extends Phaser.Scene {
       // promotionPiece.setDataEnabled();
       promotionPiece.setData({
         fullName: `${pieceColorName}${pieceName}`,
-        pieceName,
+        pieceName: (pieceName === 'knight') ? 'nknight' : pieceName,
       })
       promotionPiece.setScale(0.2)
       promotionPiece.setInteractive();

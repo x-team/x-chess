@@ -39,8 +39,8 @@ export default class MainBoardScene extends Phaser.Scene {
   update() {}
 
   startDrag(_pointer: Phaser.Input.Pointer, dragablePiece: ChessPiece) {
+    this.children.bringToTop(dragablePiece);
     const moves = this.chessGame.moves({ square: dragablePiece.getPositionInBoard(), verbose: true });
-    // console.log(`The available moves SAN: ${this.chessGame.moves({ square: dragablePiece.getPositionInBoard() })}`)
     const possibleMoves: Set<Square> = new Set();
     moves.map( move => possibleMoves.add(move.to));
     const currentBoard = this.chessBoard.getBoard();
@@ -58,7 +58,6 @@ export default class MainBoardScene extends Phaser.Scene {
         this.chessBoard.addPossibleMovement(squareRect);
       }
     });
-    this.children.bringToTop(dragablePiece);
   }
 
   doDrag(_pointer: Phaser.Input.Pointer, dragablePiece: ChessPiece, posX: number, posY: number) {
@@ -230,27 +229,9 @@ export default class MainBoardScene extends Phaser.Scene {
         square.piece = dragablePiece;
         square.piece.setPositionInBoard(square.positionName);
         
-
-        // console.log(currentBoard.map(({
-        //   positionName,
-        //   positionNumber ,
-        //   rectangle,
-        //   piece,
-        // }) => (`
-        // {
-        //   positionName: ${positionName},
-        //   positionNumber: ${positionNumber}, 
-        //   rectangle: ${rectangle},
-        //   piece: { chessPiece: ${piece?.getChessPiece()}, positionInBoard: ${piece?.getPositionInBoard()}},
-        // }
-        // `)).join('\n'));
-        
         this.chessGame.move(mutableFinalMove);
         this.chessBoard.setFen(this.chessGame.fen());
-        // console.log(`The move was: ${mutableFinalMove}`);
-        // console.log(`The chessBoard FEN: ${this.chessBoard.getFen()}`);
-        console.log(`The chess lib FEN: ${this.chessGame.fen()}`);
-        // console.log(`Are they the same?: ${this.chessGame.fen() === this.chessGame.fen()}`);
+        // console.log(`The chess lib FEN: ${this.chessGame.fen()}`);
       }
 
     })
@@ -270,35 +251,30 @@ export default class MainBoardScene extends Phaser.Scene {
     const originSquare = currentBoard[originIndex];
     const targetSquare = currentBoard[targetIndex];
     
-    let mutableFinalMove = `${target}=${promotionFor}+`;
-    // find moves for cases like f1=Q+ f2xf1=R. 
-    // We can search for all moves with the "to" param going "target"
-    // Then filter where it finds the "promotionFor" and check if there's only one possibility,
-    // otherwise choose the longest one e.g f1xf2=R+ is longer than f1xf2=R+ 
+    let mutableFinalMove = `${target}=${promotionFor}`;
+    const possibleMoves = sansMoves.filter((move) => move.indexOf(mutableFinalMove) >= ZERO);
+    if(possibleMoves.length > ONE) {
+      possibleMoves.sort((pMoveA, pMoveB) => pMoveB.length - pMoveA.length);
+      mutableFinalMove = possibleMoves.shift()??mutableFinalMove;
+    } else {
+      mutableFinalMove = possibleMoves.shift()??mutableFinalMove;
+    }
     
     const newChessPiece = new ChessPiece(pieceColor | pieceType, target, targetSquare.rectangle, this);
     
+    if (targetSquare.piece) {
+      targetSquare.piece.destroy();
+    }
+
     // Remove piece from current position
     originSquare.piece?.destroy();
     this.chessBoard.removePieceFromCurrentPosition(originSquare.piece!);
     
-    console.log(`
-    {
-      positionName: ${this.chessBoard.getBoard()[originIndex].positionName},
-      positionNumber: ${this.chessBoard.getBoard()[originIndex].positionNumber}, 
-      rectangle: ${this.chessBoard.getBoard()[originIndex].rectangle},
-      piece: { chessPiece: ${this.chessBoard.getBoard()[originIndex].piece?.getChessPiece()}, positionInBoard: ${this.chessBoard.getBoard()[originIndex].piece?.getPositionInBoard()}},
-    }
-    `);
     // Set the new position of the piece
     targetSquare.piece = newChessPiece;
     this.chessBoard.add(targetSquare.piece);
     
-
-
-    console.log(`Final Move ${mutableFinalMove}`);
     this.chessGame.move(mutableFinalMove);
     this.chessBoard.setFen(this.chessGame.fen());
-    console.log(`The chess lib FEN: ${this.chessGame.fen()}`);
   }
 }
