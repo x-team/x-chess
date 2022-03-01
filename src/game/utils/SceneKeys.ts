@@ -1,7 +1,8 @@
 enum SceneKeys {
 	Preloader = 'preloader',
-	MainBoard = 'game',
 	Promotion = 'promotion',
+	MainBoard = 'game',
+	GameOver = 'game_over',
 };
 
 export default SceneKeys;

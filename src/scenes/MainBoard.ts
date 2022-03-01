@@ -1,8 +1,8 @@
 import { Chess, ChessInstance, Square } from 'chess.js';
 import ChessBoard from "../game/ChessBoard";
-import { PromotionOptionSelected, PromotionParams } from '../game/interfaces';
+import { GameOverParams, PromotionOptionSelected, PromotionParams } from '../game/interfaces';
 import ChessPiece from '../game/Piece';
-import { ONE, POSSIBLE_MOVE_BORDER_COLOR, POSSIBLE_MOVE_BORDER_LINE_WIDTH, SQUARE_TO_MOVE_COLOR, THREE, TWO, ZERO } from '../game/utils/consts';
+import { GAME_OVER_REASONS, ONE, POSSIBLE_MOVE_BORDER_COLOR, POSSIBLE_MOVE_BORDER_LINE_WIDTH, SQUARE_TO_MOVE_COLOR, THREE, TWO, ZERO } from '../game/utils/consts';
 import SceneKeys from '../game/utils/SceneKeys';
 
 export default class MainBoardScene extends Phaser.Scene {
@@ -22,12 +22,12 @@ export default class MainBoardScene extends Phaser.Scene {
     // this.chessGame = new Chess('rnb1kbnr/pppp1ppp/8/4p3/5PPq/8/PPPPP2P/RNBQKBNR w KQkq - 1 3');
 
     // PRE- CheckMate FEN
-    // this.chessBoard = new ChessBoard(this, 0, 0,'rnb1kbnr/pppp1ppp/8/4p2q/5PP1/8/PPPPP2P/RNBQKBNR b KQkq - 0 2');
-    // this.chessGame = new Chess('rnb1kbnr/pppp1ppp/8/4p2q/5PP1/8/PPPPP2P/RNBQKBNR b KQkq - 0 2');
+    this.chessBoard = new ChessBoard(this, 0, 0,'rnb1kbnr/pppp1ppp/8/4p2q/5PP1/8/PPPPP2P/RNBQKBNR b KQkq - 0 2');
+    this.chessGame = new Chess('rnb1kbnr/pppp1ppp/8/4p2q/5PP1/8/PPPPP2P/RNBQKBNR b KQkq - 0 2');
 
     // Stalemate FEN
-    this.chessBoard = new ChessBoard(this, 0, 0,'4k3/4P3/4K3/8/8/8/8/8 b - - 0 78');
-    this.chessGame = new Chess('4k3/4P3/4K3/8/8/8/8/8 b - - 0 78');
+    // this.chessBoard = new ChessBoard(this, 0, 0,'4k3/4P3/4K3/8/8/8/8/8 b - - 0 78');
+    // this.chessGame = new Chess('4k3/4P3/4K3/8/8/8/8/8 b - - 0 78');
 
     // DRAW FEN
     // this.chessBoard = new ChessBoard(this, 0, 0,);
@@ -76,26 +76,34 @@ export default class MainBoardScene extends Phaser.Scene {
       const isDraw = this.chessGame.in_draw();
       const isThreefoldRepetition = this.chessGame.in_threefold_repetition();
       const isInsufficientMaterial = this.chessGame.insufficient_material();
+      const gameOverParams: GameOverParams = {
+        reason: GAME_OVER_REASONS.CHECKMATE,
+        chessSquareSize: this.chessBoard.getBoard()[ZERO].rectangle.width,
+        gameHistory: this.chessGame.history(),
+      }
       if(isCheckmate) {
+        gameOverParams.reason = GAME_OVER_REASONS.CHECKMATE;
+        gameOverParams.winner = this.chessGame.turn() === 'b' ? 'w' : 'b';
         console.log('Reason: isCheckmate');
-        return;
-      }
-      if(isStalemate) {
+      } else if(isStalemate) {
+        gameOverParams.reason = GAME_OVER_REASONS.STALEMATE;
         console.log('Reason: Stalemate');
-        return;
-      }
-      if(isDraw) {
+      } else if(isDraw) {
+        gameOverParams.reason = GAME_OVER_REASONS.DRAW;
         console.log('Reason: Draw');
-        return;
-      }
-      if(isThreefoldRepetition) {
+      } else if(isThreefoldRepetition) {
+        gameOverParams.reason = GAME_OVER_REASONS.THREEFOLD_REPETITION;
         console.log('Reason: ThreefoldRepetition');
-        return;
-      }
-      if(isInsufficientMaterial) {
+      } else if(isInsufficientMaterial) {
+        gameOverParams.reason = GAME_OVER_REASONS.INSUFFICIENT_MATERIAL;
         console.log('Reason: InsufficientMaterial');
-        return;
       }
+
+      this.game.scene.pause(SceneKeys.MainBoard);
+      this.game.scene.start(
+        SceneKeys.GameOver,
+        gameOverParams,
+      );
     }
   }
 
@@ -294,6 +302,7 @@ export default class MainBoardScene extends Phaser.Scene {
         this.chessBoard.setFen(this.chessGame.fen());
         console.log(`The chess lib FEN: ${this.chessGame.fen()}`);
 
+        console.log(this.chessGame.history());
         // Check if the game is over
         this.checkGameOver();
       }

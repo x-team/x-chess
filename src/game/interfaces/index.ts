@@ -19,3 +19,10 @@ export interface PromotionOptionSelected {
   target: Square;
   pieceColor: Piece.Black | Piece.White,
 }
+
+export interface GameOverParams {
+  winner?: 'b' | 'w';
+  reason: string;
+  chessSquareSize: number;
+  gameHistory: string[];
+}

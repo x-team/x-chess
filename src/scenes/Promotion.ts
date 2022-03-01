@@ -94,7 +94,14 @@ export default class PromotionScene extends Phaser.Scene {
       closeButton.x + (closeButton.width / TWO), 
       closeButton.y + (closeButton.height / TWO), 
       'x', 
-      { fontFamily: 'Helvetica', fontSize: '.8rem', color: TEXT_COLOR },
+      {
+        fontFamily: 'Helvetica',
+        fontSize: '.8rem',
+        color: TEXT_COLOR,
+        stroke: TEXT_COLOR,
+        strokeThickness: 3,
+        resolution: 2,
+      },
     )
     .setOrigin(originAt, originAt);
 
